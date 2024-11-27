@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:developer';
 
-import 'package:cep/cepResponse.dart';
+import 'package:cep/cep_response.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
+import 'dart:async';
 
-import 'CustomListTile.dart';
+import 'custom_list_tile.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.title});
@@ -21,7 +23,7 @@ class _MyHomePageState extends State<HomePage> {
   CepResponse? result;
 
   Future<CepResponse> convertJson(String cep) async {
-    Uri url = Uri.https('viacep.com.br/ws/$cep/json/');
+    Uri url = Uri.https('viacep.com.br', 'ws/$cep/json/');
     Response response = await get(url);
     dynamic responseJson = jsonDecode(response.body);
     dynamic formattedJson = CepResponse.fromJson(responseJson);
@@ -35,36 +37,52 @@ class _MyHomePageState extends State<HomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'Insira o CEP que deseja buscar:',
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          const Text(
+            'Insira o CEP que deseja buscar:',
+          ),
+          TextField(
+            controller: cep,
+          ),
+          Container(
+            height: 2,
+          ),
+          ElevatedButton(
+            onPressed: cep.text.isNotEmpty ? () {
+              log(cep.text);
+              var snackBar = SnackBar(
+                content: Text('Preencha o campo!'),
+              );
+              ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            } :
+            () async {
+              log(cep.text);
+              var moeLover = await convertJson(cep.text);
+              result = moeLover;
+              await showDialga(result);
+            },
+            child: const Row(
+              children: [
+                Icon(Icons.search),
+                Text('Buscar'),
+              ],
             ),
-            TextField(
-              controller: cep,
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() async {
-                  result = await convertJson(cep.text);
-                });
-              },
-              child: const Row(
-                children: [
-                  Icon(
-                      Icons.search
-                  ),
-                  Text(
-                      'Buscar'
-                  ),
-                ],
-              ),
-            ),
-            result == null ?
-              Container() :
-              ListView.builder(
+          ),
+        ],
+      ),
+    );
+  }
+
+  showDialga(var result) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) => Dialog(
+        child: result == null
+            ? Container()
+            : Container(
+              child: ListView.builder(
                 itemBuilder: (BuildContext context, int index) {
                   return Column(
                     children: <Widget>[
@@ -72,11 +90,13 @@ class _MyHomePageState extends State<HomePage> {
                       const Divider(
                         height: 2.0,
                       ),
-                      CustomListTile('Logradouro', result?.logradouro ?? ''),
+                      CustomListTile(
+                          'Logradouro', result?.logradouro ?? ''),
                       const Divider(
                         height: 2.0,
                       ),
-                      CustomListTile('Complemento', result?.complemento ?? ''),
+                      CustomListTile(
+                          'Complemento', result?.complemento ?? ''),
                       const Divider(
                         height: 2.0,
                       ),
@@ -88,7 +108,8 @@ class _MyHomePageState extends State<HomePage> {
                       const Divider(
                         height: 2.0,
                       ),
-                      CustomListTile('Localidade', result?.localidade ?? ''),
+                      CustomListTile(
+                          'Localidade', result?.localidade ?? ''),
                       const Divider(
                         height: 2.0,
                       ),
@@ -121,8 +142,7 @@ class _MyHomePageState extends State<HomePage> {
                   );
                 },
               ),
-          ],
-        ),
+            ),
       ),
     );
   }
